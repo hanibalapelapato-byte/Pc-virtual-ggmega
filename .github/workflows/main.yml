@@ -1,0 +1,40 @@
+name: Windows VM via Tailscale
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Conectar ao Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ""
+          oauth-secret: ""
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Ativar RDP e Definir Senha
+        shell: powershell
+        run: |
+          Set-ItemProperty -Path 'HKLM:\System\CurrentValue\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          $admin = [adsi]"WinNT://./runneradmin,user"
+          $admin.SetPassword("2026")
+
+      - name: Otimizar Desempenho
+        shell: powershell
+        run: |
+          Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' -Name VisualFXSetting -Value 2
+          Stop-Service -Name "SysMain" -Force -ErrorAction SilentlyContinue
+
+      - name: Manter Maquina Ativa
+        shell: powershell
+        run: |
+          $i = 0
+          while ($true) {
+            Start-Sleep -Seconds 60
+            $i++
+            Write-Host "Máquina ativa há $i minutos..."
+          }
+          
